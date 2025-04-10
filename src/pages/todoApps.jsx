@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { FaTrash, FaEdit } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function TodoApp() {
   const [todos, setTodos] = useState([]);
   const [task, setTask] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedTodos = JSON.parse(localStorage.getItem("todos")) || [];
@@ -18,26 +20,20 @@ export default function TodoApp() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!task.trim()) return;
-
-    let updatedTodos;
-
-    if (isEditing) {
-      updatedTodos = todos.map((todo) =>
-        todo.id === editId ? { ...todo, text: task } : todo
-      );
-      setIsEditing(false);
-      setEditId(null);
-    } else {
-      updatedTodos = [
-        ...todos,
-        { id: Date.now(), text: task, completed: false },
-      ];
+    if (!task.trim()) {
+      toast.warning("Tugas tidak boleh kosong!");
+      return;
     }
+
+    const updatedTodos = [
+      ...todos,
+      { id: Date.now(), text: task, completed: false },
+    ];
 
     setTodos(updatedTodos);
     saveToLocalStorage(updatedTodos);
     setTask("");
+    toast.success("Tugas berhasil ditambahkan!");
   };
 
   const toggleComplete = (id) => {
@@ -46,86 +42,89 @@ export default function TodoApp() {
     );
     setTodos(updatedTodos);
     saveToLocalStorage(updatedTodos);
+    toast.info("Status tugas diperbarui!");
   };
 
   const deleteTodo = (id) => {
     const updatedTodos = todos.filter((todo) => todo.id !== id);
     setTodos(updatedTodos);
     saveToLocalStorage(updatedTodos);
+    toast.error("Tugas berhasil dihapus!");
   };
 
-  const editTodo = (id) => {
-    const currentTodo = todos.find((todo) => todo.id === id);
-    setTask(currentTodo.text);
-    setIsEditing(true);
-    setEditId(id);
+  const goToEdit = (id) => {
+    navigate(`/edit/${id}`);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4 sm:p-6">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-center">
-        To-Do List
-      </h1>
+    <div className="min-h-screen bg-blue-200 bg-no-repeat bg-cover bg-center flex flex-col items-center px-4 py-8">
+      <ToastContainer position="top-right" autoClose={1500} />
+
+      <h1 className="text-3xl font-bold text-blue-600 mb-6">📋 To-Do List</h1>
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row gap-2 mb-6 w-full max-w-md"
+        className="flex w-full max-w-lg bg-white p-4 rounded-xl shadow gap-3"
       >
         <input
           type="text"
           value={task}
           onChange={(e) => setTask(e.target.value)}
-          className="px-4 py-2 border rounded-lg w-full text-base"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Tambah tugas..."
         />
-        <button
-          className={`bg-blue-500 text-white px-4 py-2 rounded-lg w-full sm:w-auto 
-            transition-transform duration-200 hover:scale-105 hover:bg-blue-600
-            ${!isEditing && "animate-bounce sm:animate-none"}`}
-        >
-          {isEditing ? "Update" : "Tambah"}
+        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+          Tambah
         </button>
       </form>
 
-      <ul className="w-full max-w-md">
+      <ul className="w-full max-w-6xl mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {todos.map((todo) => (
           <li
             key={todo.id}
-            className="flex flex-col sm:flex-row justify-between items-start sm:items-center 
-            bg-white p-3 rounded shadow mb-2 gap-2
-            hover:bg-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="flex justify-between items-center bg-white p-4 rounded-xl shadow hover:shadow-2xl mb-3 transition-all"
           >
-            <div className="flex items-start sm:items-center gap-2 w-full">
+            <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={todo.completed}
                 onChange={() => toggleComplete(todo.id)}
-                className="mt-1 sm:mt-0"
+                className="w-5 h-5"
               />
               <span
-                className={`break-words ${
-                  todo.completed ? "line-through text-gray-500" : ""
+                className={`text-lg ${
+                  todo.completed
+                    ? "line-through text-gray-400"
+                    : "text-gray-800"
                 }`}
               >
                 {todo.text}
               </span>
             </div>
-            <div className="flex gap-3 self-end sm:self-auto text-lg">
+            <div className="flex gap-3 text-xl">
               <button
-                onClick={() => editTodo(todo.id)}
-                className="text-blue-500 hover:scale-110 transition-transform duration-200"
+                onClick={() => goToEdit(todo.id)}
+                className="text-blue-500 hover:scale-110"
               >
                 <FaEdit />
               </button>
               <button
                 onClick={() => deleteTodo(todo.id)}
-                className="text-red-500 hover:scale-110 transition-transform duration-200"
+                className="text-red-500 hover:scale-110"
               >
                 <FaTrash />
               </button>
             </div>
           </li>
         ))}
+
+        {todos.length === 0 && (
+          <div className="col-span-full flex justify-center items-center h-40">
+            <p className="text-center text-gray-500 text-lg">
+              Belum ada tugas. Yuk mulai tambah!
+            </p>
+          </div>
+        )}
       </ul>
     </div>
   );
